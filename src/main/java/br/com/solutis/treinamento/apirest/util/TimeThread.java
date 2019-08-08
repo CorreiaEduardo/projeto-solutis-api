@@ -1,4 +1,4 @@
-package br.com.solutis.treinamento.apirest.Util;
+package br.com.solutis.treinamento.apirest.util;
 
 import br.com.solutis.treinamento.apirest.model.Parcela;
 import br.com.solutis.treinamento.apirest.service.ParcelaService;

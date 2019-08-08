@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -26,8 +25,8 @@ public class ContaService {
         this.parcelaRepository = parcelaRepository;
     }
 
-    public List<Conta> buscarTodas(){
-        return this.contaRepository.findAll();
+    public ResponseEntity buscarTodas(){
+        return new ResponseEntity<>(this.contaRepository.findAll(),HttpStatus.OK);
     }
 
     /**
@@ -39,7 +38,7 @@ public class ContaService {
     public ResponseEntity inserirConta(Conta c){
         this.contaRepository.save(c);
 
-        if (c.getQtdParcelas() != null){
+        if (c.getQtdParcelas() != 0){
             long qtdParcelas = (long) c.getQtdParcelas();
             for (int i = 1 ; i <= qtdParcelas ; i++){
                 BigDecimal valor = c.getValor().divide(new BigDecimal(qtdParcelas), RoundingMode.UP);
