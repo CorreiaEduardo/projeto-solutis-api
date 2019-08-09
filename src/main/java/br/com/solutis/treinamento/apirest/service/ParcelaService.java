@@ -50,18 +50,25 @@ public class ParcelaService {
         List<Parcela> source = new ArrayList<>();
         this.contaRepository.findAll().forEach(conta -> source.addAll(conta.getParcelas()));
 
-        List<Parcela> parcelas = filtrarParcelasPorMes(source, mes, ano);
+        List<Parcela> parcelasFiltradas = filtrarParcelasPorMes(source, mes, ano);
 
         /*
         *   As parcelas fixas assumem o vencimento do critério de busca durante a exibição,
         *   representando assim uma predição para essa parcela fixa no mes selecionado.
         * */
-        parcelas.forEach(parcela -> {
+        parcelasFiltradas.forEach(parcela -> {
             if (parcela.getConta().isFixo()){
                 parcela.setVencimento(LocalDate.of(ano,mes,parcela.getVencimento().getDayOfMonth()));
             }
         });
 
+        BigDecimal saldo = calcularSaldo(parcelasFiltradas);
+        Resumo r = new Resumo(saldo,parcelasFiltradas);
+
+        return new ResponseEntity<>(r, HttpStatus.OK);
+    }
+
+    private BigDecimal calcularSaldo(List<Parcela> parcelas){
         BigDecimal receita = new BigDecimal(0);
         BigDecimal despesa = new BigDecimal(0);
 
@@ -72,11 +79,7 @@ public class ParcelaService {
             }
             receita = receita.add(p.getValor());
         }
-
-        BigDecimal saldo = receita.subtract(despesa);
-
-        Resumo r = new Resumo(saldo,parcelas);
-        return new ResponseEntity<>(r, HttpStatus.OK);
+        return receita.subtract(despesa);
     }
 
     /**

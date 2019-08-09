@@ -36,21 +36,50 @@ public class ContaService {
     public ResponseEntity buscarTodas(Pageable pageable){
         List<Conta> contas = this.contaRepository.findAll();
         contas.sort(Comparator.comparing(conta -> conta.getId()));
+
+        List<Conta> contasPaginadas = obterContasPaginadas(contas, pageable);
+        int totalPaginas = obterTotalPaginas(contas, pageable);
+
+        PaginaLista pagina = new PaginaLista(contasPaginadas,totalPaginas,pageable.getPageNumber()>=totalPaginas-1);
+        return new ResponseEntity<>(pagina,HttpStatus.OK);
+    }
+
+    /**
+     * Método para obter uma lista de contas, com suas parcelas paginadas.
+     * @param contas 'List<Conta>' - Lista de contas a ser paginada.
+     * @return 'List<Conta>' - A lista de contas com suas parcelas paginadas.
+     * */
+    private List<Conta> obterContasPaginadas(List<Conta> contas,Pageable pageable){
         List<Conta> contasPaginadas = new ArrayList<>();
-        int totalPaginas = 0;
         for (Conta conta:contas){
             if (pageable.getPageNumber() == 0){
                 if (conta.isFixo()) contasPaginadas.add(conta);
             }
             if (conta.getQtdParcelas() > (pageable.getPageSize()*pageable.getPageNumber())){
                 Page<Parcela> paginaAtual = this.parcelaRepository.findAllByContaId(conta.getId(),pageable);
-                if(paginaAtual.getTotalPages() > totalPaginas) totalPaginas=paginaAtual.getTotalPages();
                 conta.setParcelas(paginaAtual.getContent());
                 contasPaginadas.add(conta);
             }
         }
-        PaginaLista pagina = new PaginaLista(contasPaginadas,totalPaginas+1,pageable.getPageNumber()>=totalPaginas-1);
-        return new ResponseEntity<>(pagina,HttpStatus.OK);
+        return contasPaginadas;
+    }
+
+    /**
+     * Método para obter o total de páginas que serão necessárias para exibir
+     * todo o conteúdo que poderá ser paginado.
+     * @param contas 'List<Conta>' - Lista de contas que podem ser paginadas.
+     * @return int - Total de páginas que serão necessárias para exibir
+     * todo o conteúdo da lista de contas.
+     * */
+    private int obterTotalPaginas(List<Conta> contas,Pageable pageable){
+        int totalPaginas = 0;
+        for (Conta conta:contas){
+            if (conta.getQtdParcelas() > (pageable.getPageSize()*pageable.getPageNumber())){
+                Page<Parcela> paginaAtual = this.parcelaRepository.findAllByContaId(conta.getId(),pageable);
+                if(paginaAtual.getTotalPages() > totalPaginas) totalPaginas=paginaAtual.getTotalPages();
+            }
+        }
+        return totalPaginas;
     }
 
     /**
