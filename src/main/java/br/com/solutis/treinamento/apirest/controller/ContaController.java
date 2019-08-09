@@ -4,6 +4,7 @@ import br.com.solutis.treinamento.apirest.model.Conta;
 import br.com.solutis.treinamento.apirest.service.ContaService;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,8 +20,8 @@ public class ContaController {
 
     @GetMapping
     @ApiOperation(value = "Retorna uma lista de todas as contas cadastradas.")
-    public ResponseEntity obterContas(){
-        return this.service.buscarTodas();
+    public ResponseEntity obterContas(Pageable pageable){
+        return this.service.buscarTodas(pageable);
     }
 
     @PostMapping
@@ -32,11 +33,7 @@ public class ContaController {
     @PutMapping(path = "/{id}")
     @ApiOperation(value = "Atualiza uma conta fixa existente.")
     public ResponseEntity atualizarConta(@RequestBody Conta c, @PathVariable("id") Long id){
-        c.setId(id);
-        if (c.isFixo()) return this.service.atualizarConta(c);
-        else {
-            return ResponseEntity.badRequest().build();
-        }
+        return this.service.atualizarConta(c,id);
     }
 
     @DeleteMapping(path = "/{id}")

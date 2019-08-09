@@ -29,7 +29,7 @@ public class SwaggerConfig {
 
     private ApiInfo metaInfo() {
 
-        ApiInfo apiInfo = new ApiInfo(
+        return new ApiInfo(
                 "Contas API REST",
                 "API REST de cadastro de contas.",
                 "1.1",
@@ -39,6 +39,5 @@ public class SwaggerConfig {
                 null,
                 null, new ArrayList<VendorExtension>()
         );
-        return apiInfo;
     }
 }

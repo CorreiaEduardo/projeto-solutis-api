@@ -14,12 +14,15 @@ import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 public class Conta extends AbstractEntity {
 
-    public Conta() {}
+    public Conta() {
+        this.parcelas = new ArrayList<>();
+    }
     @NotNull(message = "O nome da conta é um campo obrigatório.")
     @Size(min = 1, max = 60, message = "O nome da conta deve conter entre 1 e 60 caracteres.")
     @Column(name = "nome", nullable = false, length = 60)
@@ -30,7 +33,7 @@ public class Conta extends AbstractEntity {
     @Column(name = "valor", nullable = false)
     private BigDecimal valor;
 
-    @NotNull(message = "O atributo fixo é deve ser preenchido.")
+    @NotNull(message = "O atributo fixo deve ser preenchido.")
     @Column(name = "fixo", nullable = false)
     private boolean fixo;
 

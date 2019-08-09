@@ -1,10 +1,15 @@
 package br.com.solutis.treinamento.apirest.service;
 
+import br.com.solutis.treinamento.apirest.error.CustomBadRequestException;
+import br.com.solutis.treinamento.apirest.error.CustomNotFoundException;
 import br.com.solutis.treinamento.apirest.model.Conta;
+import br.com.solutis.treinamento.apirest.model.PaginaLista;
 import br.com.solutis.treinamento.apirest.model.Parcela;
 import br.com.solutis.treinamento.apirest.repository.ContaRepository;
 import br.com.solutis.treinamento.apirest.repository.ParcelaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -12,6 +17,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -25,8 +33,24 @@ public class ContaService {
         this.parcelaRepository = parcelaRepository;
     }
 
-    public ResponseEntity buscarTodas(){
-        return new ResponseEntity<>(this.contaRepository.findAll(),HttpStatus.OK);
+    public ResponseEntity buscarTodas(Pageable pageable){
+        List<Conta> contas = this.contaRepository.findAll();
+        contas.sort(Comparator.comparing(conta -> conta.getId()));
+        List<Conta> contasPaginadas = new ArrayList<>();
+        int totalPaginas = 0;
+        for (Conta conta:contas){
+            if (pageable.getPageNumber() == 0){
+                if (conta.isFixo()) contasPaginadas.add(conta);
+            }
+            if (conta.getQtdParcelas() > (pageable.getPageSize()*pageable.getPageNumber())){
+                Page<Parcela> paginaAtual = this.parcelaRepository.findAllByContaId(conta.getId(),pageable);
+                if(paginaAtual.getTotalPages() > totalPaginas) totalPaginas=paginaAtual.getTotalPages();
+                conta.setParcelas(paginaAtual.getContent());
+                contasPaginadas.add(conta);
+            }
+        }
+        PaginaLista pagina = new PaginaLista(contasPaginadas,totalPaginas+1,pageable.getPageNumber()>=totalPaginas-1);
+        return new ResponseEntity<>(pagina,HttpStatus.OK);
     }
 
     /**
@@ -37,15 +61,14 @@ public class ContaService {
      * */
     public ResponseEntity inserirConta(Conta c){
         this.contaRepository.save(c);
-
         if (c.getQtdParcelas() != 0){
             long qtdParcelas = (long) c.getQtdParcelas();
             for (int i = 1 ; i <= qtdParcelas ; i++){
                 BigDecimal valor = c.getValor().divide(new BigDecimal(qtdParcelas), RoundingMode.UP);
                 LocalDate vencimento = c.getDataOperacao().plusMonths(i);
-                this.parcelaRepository.save(
-                        new Parcela(vencimento, valor, c)
-                );
+                Parcela p = new Parcela(vencimento, valor, c);
+                this.parcelaRepository.save(p);
+                c.getParcelas().add(p);
             }
         }else{
             LocalDate vencimento = c.getDataOperacao().plusMonths(1);
@@ -57,12 +80,17 @@ public class ContaService {
         return new ResponseEntity<>(c,HttpStatus.CREATED);
     }
 
-    public ResponseEntity atualizarConta(Conta c){
-        Parcela parcelaConta = this.parcelaRepository.findByContaId(c.getId());
-        this.contaRepository.save(c);
-        parcelaConta.setValor(c.getValor());
-        this.parcelaRepository.save(parcelaConta);
-        return new ResponseEntity<>(c,HttpStatus.OK);
+    public ResponseEntity atualizarConta(Conta c, Long id){
+        c.setId(id);
+        if (c.isFixo()){
+            Parcela parcelaConta = this.parcelaRepository.findByContaId(c.getId());
+            this.contaRepository.save(c);
+            parcelaConta.setValor(c.getValor());
+            this.parcelaRepository.save(parcelaConta);
+            return new ResponseEntity<>(c,HttpStatus.OK);
+        }
+        throw new CustomBadRequestException("Só contas fixas podem ser atualizadas");
+
     }
 
     public ResponseEntity buscarPorId(Long id){
@@ -90,8 +118,8 @@ public class ContaService {
                 this.parcelaRepository.deleteByContaId(conta.getId());
                 this.contaRepository.deleteById(id);
             }
-            return new ResponseEntity<>(this.buscarTodas(), HttpStatus.OK);
+            return new ResponseEntity<>(this.contaRepository.findAll(), HttpStatus.OK);
         }
-        return ResponseEntity.notFound().build();
+        throw new CustomNotFoundException("A parcela não foi encontrada.");
     }
 }

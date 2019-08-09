@@ -1,5 +1,6 @@
 package br.com.solutis.treinamento.apirest.service;
 
+import br.com.solutis.treinamento.apirest.error.CustomNotFoundException;
 import br.com.solutis.treinamento.apirest.model.Conta;
 import br.com.solutis.treinamento.apirest.model.Parcela;
 import br.com.solutis.treinamento.apirest.model.Resumo;
@@ -117,11 +118,17 @@ public class ParcelaService {
         Optional<Parcela> parcela = this.parcelaRepository.findById(id);
         if (parcela.isPresent()){
             Conta parcelaConta = parcela.get().getConta();
-            parcelaConta.setQtdParcelas(parcelaConta.getQtdParcelas()-1);
-            this.contaRepository.save(parcelaConta);
-            this.parcelaRepository.deleteById(id);
+            if (!parcelaConta.isFixo()){
+                parcelaConta.setQtdParcelas(parcelaConta.getQtdParcelas()-1);
+                this.contaRepository.save(parcelaConta);
+                this.parcelaRepository.deleteById(id);
+            }else{
+                Parcela parcelaPaga = parcela.get();
+                parcelaPaga.setVencimento(parcelaPaga.getVencimento().plusMonths(1));
+                this.parcelaRepository.save(parcelaPaga);
+            }
+            return new ResponseEntity<>(this.parcelaRepository.findAll(),HttpStatus.OK);
         }
-
-        return new ResponseEntity<>(this.parcelaRepository.findAll(),HttpStatus.OK);
+        throw new CustomNotFoundException("A parcela não foi encontrada.");
     }
 }
