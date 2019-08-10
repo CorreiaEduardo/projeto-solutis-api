@@ -5,6 +5,7 @@ import br.com.solutis.treinamento.apirest.error.CustomNotFoundException;
 import br.com.solutis.treinamento.apirest.model.Conta;
 import br.com.solutis.treinamento.apirest.model.PaginaLista;
 import br.com.solutis.treinamento.apirest.model.Parcela;
+import br.com.solutis.treinamento.apirest.model.enums.TipoConta;
 import br.com.solutis.treinamento.apirest.repository.ContaRepository;
 import br.com.solutis.treinamento.apirest.repository.ParcelaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -150,5 +151,11 @@ public class ContaService {
             return new ResponseEntity<>(this.contaRepository.findAll(), HttpStatus.OK);
         }
         throw new CustomNotFoundException("A parcela não foi encontrada.");
+    }
+
+    public ResponseEntity buscarPorTipo(TipoConta tipoConta) {
+        List<Conta> source = this.contaRepository.findByTipo(tipoConta);
+        source.forEach(conta -> conta.getParcelas().sort(Comparator.comparing(parcela -> parcela.getVencimento())));
+        return new ResponseEntity<>(this.contaRepository.findByTipo(tipoConta),HttpStatus.OK);
     }
 }

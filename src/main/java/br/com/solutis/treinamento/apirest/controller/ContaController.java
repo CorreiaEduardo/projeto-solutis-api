@@ -1,6 +1,7 @@
 package br.com.solutis.treinamento.apirest.controller;
 
 import br.com.solutis.treinamento.apirest.model.Conta;
+import br.com.solutis.treinamento.apirest.model.enums.TipoConta;
 import br.com.solutis.treinamento.apirest.service.ContaService;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(path = "/api/contas")
+@CrossOrigin(origins = "*")
 public class ContaController {
 
     private ContaService service;
@@ -22,6 +24,14 @@ public class ContaController {
     @ApiOperation(value = "Retorna uma lista de todas as contas cadastradas.")
     public ResponseEntity obterContas(Pageable pageable){
         return this.service.buscarTodas(pageable);
+    }
+
+    @GetMapping(path = "/{tipo}")
+    @ApiOperation(value = "Retorna uma lista de todas a pagar ou a receber.")
+    public ResponseEntity obterContasPorTipo(@PathVariable String tipo){
+        tipo = tipo.toUpperCase();
+        TipoConta tipoConta = TipoConta.valueOf(tipo);
+        return this.service.buscarPorTipo(tipoConta);
     }
 
     @PostMapping
